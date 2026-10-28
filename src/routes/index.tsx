@@ -27,6 +27,7 @@ function Index() {
   const [grid, setGrid] = useState<WavePoint[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(3.5);
+  const [show, setShow] = useState({ planned: true, optimized: true });
 
   useEffect(() => {
     fetchWaveGrid().then(setGrid).catch((e) => setError(e.message));
@@ -44,9 +45,9 @@ function Index() {
     };
   }, [planned, rerouted, grid]);
 
-  const kpis = [
-    { label: "Distanza pianificata", value: `${stats.dP.toFixed(0)} nm` },
-    { label: "Distanza ottimizzata", value: `${stats.dR.toFixed(0)} nm`, sub: `+${(stats.dR - stats.dP).toFixed(0)} nm` },
+  const kpis: { label: string; value: string; sub?: string; toggle?: "planned" | "optimized" }[] = [
+    { label: "Distanza pianificata", value: `${stats.dP.toFixed(0)} nm`, toggle: "planned" },
+    { label: "Distanza ottimizzata", value: `${stats.dR.toFixed(0)} nm`, sub: `+${(stats.dR - stats.dP).toFixed(0)} nm`, toggle: "optimized" },
     { label: "Onda max pianificata", value: `${stats.maxP.toFixed(1)} m` },
     { label: "Onda max ottimizzata", value: `${stats.maxR.toFixed(1)} m` },
     { label: `Durata @ ${SPEED_KN} kn`, value: `${(stats.dR / SPEED_KN / 24).toFixed(1)} gg` },
@@ -69,7 +70,7 @@ function Index() {
 
       <main className="grid gap-4 p-4 lg:grid-cols-[1fr_380px]">
         <section className="panel relative h-[62vh] overflow-hidden">
-          <AtlasMap grid={grid} planned={planned} rerouted={rerouted} />
+          <AtlasMap grid={grid} planned={planned} rerouted={rerouted} show={show} />
           <div className="panel absolute bottom-3 left-3 z-[500] space-y-1 p-3 font-mono text-xs">
             <Legend swatch="bg-route-planned" label="Pianificata" dashed />
             <Legend swatch="bg-route-weather" label="Meteo-ottimizzata" />
@@ -84,12 +85,25 @@ function Index() {
         </section>
 
         <aside className="grid content-start gap-3">
-          {kpis.map((k) => (
-            <div key={k.label} className="panel flex items-baseline justify-between px-4 py-3">
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-              <span className="font-mono text-lg">{k.value}{k.sub && <span className="ml-2 text-xs text-primary">{k.sub}</span>}</span>
-            </div>
-          ))}
+          {kpis.map((k) => {
+            const active = !k.toggle || show[k.toggle];
+            return (
+              <div
+                key={k.label}
+                onClick={k.toggle ? () => setShow((s) => ({ ...s, [k.toggle!]: !s[k.toggle!] })) : undefined}
+                className={`panel flex items-baseline justify-between px-4 py-3 transition-opacity ${
+                  k.toggle ? `cursor-pointer ${active ? "" : "opacity-40"}` : ""
+                }`}
+                title={k.toggle ? "Clicca per mostrare/nascondere la rotta" : undefined}
+              >
+                <span className="text-xs text-muted-foreground">{k.label}</span>
+                <span className="font-mono text-lg">
+                  {k.value}
+                  {k.sub && <span className="ml-2 text-xs text-primary">{k.sub}</span>}
+                </span>
+              </div>
+            );
+          })}
         </aside>
 
         <section className="panel p-4 lg:col-span-1">
