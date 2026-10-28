@@ -40,7 +40,7 @@ function Index() {
     const wP = planned.map((p) => waveAt(p, grid)), wR = rerouted.map((p) => waveAt(p, grid));
     return {
       dP, dR, maxP: Math.max(0, ...wP), maxR: Math.max(0, ...wR),
-      chart: planned.map((_, i) => ({ wp: i, pianificata: +wP[i].toFixed(2), ottimizzata: +wR[i].toFixed(2) })),
+      chart: planned.map((_, i) => ({ wp: i, pianificata: +(wP[i] ?? 0).toFixed(2), ottimizzata: +(wR[i] ?? 0).toFixed(2) })),
     };
   }, [planned, rerouted, grid]);
 
@@ -63,7 +63,7 @@ function Index() {
           <div className="mb-2 flex justify-between font-mono text-xs text-muted-foreground">
             <span>Soglia onda evitata</span><span className="text-foreground">{threshold.toFixed(1)} m</span>
           </div>
-          <Slider min={1} max={8} step={0.5} value={[threshold]} onValueChange={(v) => setThreshold(v[0])} />
+          <Slider min={1} max={8} step={0.5} value={[threshold]} onValueChange={(v) => setThreshold(v[0] ?? 3.5)} />
         </div>
       </header>
 
