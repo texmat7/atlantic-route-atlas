@@ -77,11 +77,11 @@ export function weatherRoute(
   // smooth and taper toward the ports
   let sm = shifts;
   for (let k = 0; k < 8; k++) {
-    sm = sm.map((s, i) => (i === 0 || i === n - 1 ? 0 : (sm[i - 1] + 2 * s + sm[i + 1]) / 4));
+    sm = sm.map((s, i) => (i === 0 || i === n - 1 ? 0 : ((sm[i - 1] ?? 0) + 2 * s + (sm[i + 1] ?? 0)) / 4));
   }
   return base.map((p, i) => {
     const taper = Math.min(1, Math.min(i, n - 1 - i) / 4);
-    return { lat: p.lat + sm[i] * taper, lng: p.lng };
+    return { lat: p.lat + (sm[i] ?? 0) * taper, lng: p.lng };
   });
 }
 
@@ -102,6 +102,6 @@ export async function fetchWaveGrid(): Promise<WavePoint[]> {
   const data = await res.json();
   const arr = Array.isArray(data) ? data : [data];
   return arr
-    .map((d: any, i: number) => ({ lat: lats[i], lng: lngs[i], wave: d?.current?.wave_height }))
+    .map((d: any, i: number) => ({ lat: lats[i]!, lng: lngs[i]!, wave: d?.current?.wave_height }))
     .filter((p: any) => typeof p.wave === "number");
 }
