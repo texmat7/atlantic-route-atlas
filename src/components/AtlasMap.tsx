@@ -20,8 +20,8 @@ export function AtlasMap({ grid, planned, rerouted }: Props) {
       if (cancelled || !el.current || mapRef.current) return;
       LRef.current = L;
       const map = L.map(el.current, { worldCopyJump: true, minZoom: 2 }).setView([42, -36], 4);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: "&copy; OpenStreetMap &copy; CARTO · Onde: Open-Meteo",
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles &copy; Esri · Onde: Open-Meteo",
       }).addTo(map);
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);

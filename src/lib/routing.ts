@@ -61,7 +61,7 @@ export function weatherRoute(
   base: LatLng[],
   grid: WavePoint[],
   threshold: number,
-  maxShift = 6,
+  maxShift = 5,
 ): LatLng[] {
   const n = base.length;
   const shifts = base.map((p, i) => {
@@ -76,7 +76,7 @@ export function weatherRoute(
   });
   // smooth and taper toward the ports
   let sm = shifts;
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < 8; k++) {
     sm = sm.map((s, i) => (i === 0 || i === n - 1 ? 0 : (sm[i - 1] + 2 * s + sm[i + 1]) / 4));
   }
   return base.map((p, i) => {
