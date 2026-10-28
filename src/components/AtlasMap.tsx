@@ -2,12 +2,12 @@ import { useEffect, useRef } from "react";
 import type { LatLng, WavePoint } from "@/lib/routing";
 import { LISBON, HALIFAX, waveColor } from "@/lib/routing";
 
-type Props = { grid: WavePoint[]; planned: LatLng[]; rerouted: LatLng[] };
+type Props = { grid: WavePoint[]; planned: LatLng[]; rerouted: LatLng[]; show: { planned: boolean; optimized: boolean } };
 
 const css = (v: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(v.replace(/var\((.*)\)/, "$1")).trim();
 
-export function AtlasMap({ grid, planned, rerouted }: Props) {
+export function AtlasMap({ grid, planned, rerouted, show }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
@@ -30,7 +30,7 @@ export function AtlasMap({ grid, planned, rerouted }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => { draw(); }, [grid, planned, rerouted]);
+  useEffect(() => { draw(); }, [grid, planned, rerouted, show]);
 
   function draw() {
     const L = LRef.current, layer = layerRef.current;
@@ -41,12 +41,14 @@ export function AtlasMap({ grid, planned, rerouted }: Props) {
         radius: 6 + g.wave * 2.2, stroke: false, fillColor: css(waveColor(g.wave)), fillOpacity: 0.35,
       }).bindTooltip(`Onda ${g.wave.toFixed(1)} m`).addTo(layer),
     );
-    L.polyline(planned.map((p) => [p.lat, p.lng]), {
-      color: css("--route-planned"), weight: 2, dashArray: "6 6",
-    }).bindTooltip("Rotta pianificata (ortodromia)").addTo(layer);
-    L.polyline(rerouted.map((p) => [p.lat, p.lng]), {
-      color: css("--route-weather"), weight: 3.5,
-    }).bindTooltip("Rotta meteo-ottimizzata").addTo(layer);
+    if (show.planned)
+      L.polyline(planned.map((p) => [p.lat, p.lng]), {
+        color: css("--route-planned"), weight: 2, dashArray: "6 6",
+      }).bindTooltip("Rotta pianificata (ortodromia)").addTo(layer);
+    if (show.optimized)
+      L.polyline(rerouted.map((p) => [p.lat, p.lng]), {
+        color: css("--route-weather"), weight: 3.5,
+      }).bindTooltip("Rotta meteo-ottimizzata").addTo(layer);
     [[LISBON, "Lisbona"], [HALIFAX, "Halifax"]].forEach(([p, n]: any) =>
       L.circleMarker([p.lat, p.lng], { radius: 7, color: css("--foreground"), fillColor: css("--primary"), fillOpacity: 1, weight: 2 })
         .bindTooltip(n, { permanent: true, direction: "top", className: "port-label" }).addTo(layer),
