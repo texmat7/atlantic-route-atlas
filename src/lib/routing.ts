@@ -18,7 +18,7 @@ export function distanceNm(a: LatLng, b: LatLng) {
 
 export function routeLengthNm(r: LatLng[]) {
   let d = 0;
-  for (let i = 1; i < r.length; i++) d += distanceNm(r[i - 1], r[i]);
+  for (let i = 1; i < r.length; i++) d += distanceNm(r[i - 1]!, r[i]!);
   return d;
 }
 
