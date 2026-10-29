@@ -24,12 +24,12 @@ export function EconomicCase({ warnedShare }: { warnedShare: number }) {
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="min-w-0">
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Economic Framework</p>
-          <h2 className="font-display text-sm font-semibold">Is acting on satellite warnings worth it at fleet scale?</h2>
+          <h2 className="mt-0.5 text-xs text-muted-foreground">Fleet-scale cost–benefit of satellite-informed hazard avoidance</h2>
         </div>
-        <span className={`font-mono text-lg ${r.net >= 0 ? "text-primary" : "text-destructive"}`}>
+        <span className={`shrink-0 whitespace-nowrap font-mono text-sm ${r.net >= 0 ? "text-primary" : "text-destructive"}`}>
           ROI {(r.roi * 100).toFixed(0)}%
         </span>
       </div>
