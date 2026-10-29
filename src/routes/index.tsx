@@ -1,19 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, ReferenceLine, Tooltip, ResponsiveContainer } from "recharts";
+import { Area, AreaChart, Line, LineChart, CartesianGrid, XAxis, YAxis, ReferenceLine, Tooltip, ResponsiveContainer, Legend as RLegend } from "recharts";
 import { Slider } from "@/components/ui/slider";
 import { AtlasMap } from "@/components/AtlasMap";
+import { EconomicCase } from "@/components/EconomicCase";
 import {
   fetchWaveGrid, greatCircle, weatherRoute, routeLengthNm, waveAt, LISBON, HALIFAX, type WavePoint,
 } from "@/lib/routing";
+import { simulateSegments, simulateEvents, VESSEL } from "@/lib/simulation";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Atlas Marino · Lisbona → Halifax" },
-      { name: "description", content: "Atlante mondiale con rotta Lisbona–Halifax e deviazioni dovute all'altezza d'onda." },
-      { property: "og:title", content: "Atlas Marino · Lisbona → Halifax" },
-      { property: "og:description", content: "Rotta transatlantica e weather routing in base all'altezza d'onda." },
+      { title: "ADV Atlas · Lisbon → Halifax satellite warnings" },
+      { name: "description", content: "Added Detection Value atlas: how often a satellite would have warned a Lisbon–Halifax containership of hazardous sea states." },
+      { property: "og:title", content: "ADV Atlas · Lisbon → Halifax" },
+      { property: "og:description", content: "Satellite coincidence, forecast bias, re-routing value and economic case along the North Atlantic corridor." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -21,123 +23,168 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const SPEED_KN = 14;
+type Tab = "adv" | "waves" | "h4";
 
 function Index() {
   const [grid, setGrid] = useState<WavePoint[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [threshold, setThreshold] = useState(3.5);
-  const [show, setShow] = useState({ planned: true, optimized: true });
+  const [threshold, setThreshold] = useState(VESSEL.heaveMax);
+  const [show, setShow] = useState({ planned: true, optimized: true, adv: true, waves: true });
+  const [tab, setTab] = useState<Tab>("adv");
 
-  useEffect(() => {
-    fetchWaveGrid().then(setGrid).catch((e) => setError(e.message));
-  }, []);
+  useEffect(() => { fetchWaveGrid().then(setGrid).catch((e) => setError(e.message)); }, []);
 
   const planned = useMemo(() => greatCircle(LISBON, HALIFAX, 40), []);
   const rerouted = useMemo(() => (grid.length ? weatherRoute(planned, grid, threshold) : planned), [planned, grid, threshold]);
+  const segments = useMemo(() => simulateSegments(planned), [planned]);
+  const events = useMemo(() => simulateEvents(), []);
 
-  const stats = useMemo(() => {
+  const s = useMemo(() => {
     const dP = routeLengthNm(planned), dR = routeLengthNm(rerouted);
     const wP = planned.map((p) => waveAt(p, grid)), wR = rerouted.map((p) => waveAt(p, grid));
+    const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    const blind = segments.filter((x) => x.blind).length / segments.length;
     return {
-      dP, dR, maxP: Math.max(0, ...wP), maxR: Math.max(0, ...wR),
-      chart: planned.map((_, i) => ({ wp: i, pianificata: +(wP[i] ?? 0).toFixed(2), ottimizzata: +(wR[i] ?? 0).toFixed(2) })),
+      dP, dR, blind,
+      pS1: mean(segments.map((x) => x.pS1)), pAll: mean(segments.map((x) => x.pAll)),
+      bias: mean(segments.map((x) => x.bias)),
+      heaveRec: mean(events.map((e) => e.heaveBefore - e.heaveAfter)),
+      fuel: mean(events.map((e) => e.fuelPenaltyT)),
+      compliant: events.filter((e) => e.heaveAfter <= VESSEL.heaveMax).length / events.length,
+      waves: planned.map((_, i) => ({ wp: i, planned: +(wP[i] ?? 0).toFixed(2), rerouted: +(wR[i] ?? 0).toFixed(2) })),
     };
-  }, [planned, rerouted, grid]);
+  }, [planned, rerouted, grid, segments, events]);
 
-  const kpis: { label: string; value: string; sub?: string; toggle?: "planned" | "optimized" }[] = [
-    { label: "Distanza pianificata", value: `${stats.dP.toFixed(0)} nm`, toggle: "planned" },
-    { label: "Distanza ottimizzata", value: `${stats.dR.toFixed(0)} nm`, sub: `+${(stats.dR - stats.dP).toFixed(0)} nm`, toggle: "optimized" },
-    { label: "Onda max pianificata", value: `${stats.maxP.toFixed(1)} m` },
-    { label: "Onda max ottimizzata", value: `${stats.maxR.toFixed(1)} m` },
-    { label: `Durata @ ${SPEED_KN} kn`, value: `${(stats.dR / SPEED_KN / 24).toFixed(1)} gg` },
+  const toggle = (k: keyof typeof show) => setShow((v) => ({ ...v, [k]: !v[k] }));
+
+  const hyp = [
+    { id: "H1", title: "Constellation boosts coincidence", value: `${(s.pS1 * 100).toFixed(0)}% → ${(s.pAll * 100).toFixed(0)}%`, note: "Sentinel-1 only vs full SAR + altimetry" },
+    { id: "H2", title: "Blind corridor", value: `${(s.blind * 100).toFixed(0)}% of route`, note: "Mid-Atlantic leg, coincidence < 22%" },
+    { id: "H3", title: "CMEMS underestimates Hs", value: `−${s.bias.toFixed(2)} m`, note: "Mean bias on coincident events" },
+    { id: "H4", title: "Safety recovered", value: `${(s.compliant * 100).toFixed(0)}% compliant`, note: `−${s.heaveRec.toFixed(2)} m heave · +${s.fuel.toFixed(1)} t fuel` },
   ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border px-6 py-4">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.25em] text-primary">Atlas · Nord Atlantico</p>
-          <h1 className="font-display text-2xl font-semibold">Lisbona → Halifax</h1>
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-primary">Added Detection Value Atlas · North Atlantic</p>
+          <h1 className="font-display text-2xl font-semibold">How often would a satellite have warned you?</h1>
+          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+            Lisbon → Halifax · {VESSEL.name} · {VESSEL.speedKn} kn · limits: heave {VESSEL.heaveMax} m, roll {VESSEL.rollMax}°
+            <span className="ml-2 rounded border border-primary/50 px-1.5 py-0.5 text-primary">SIMULATED DATA</span>
+          </p>
         </div>
         <div className="w-72">
           <div className="mb-2 flex justify-between font-mono text-xs text-muted-foreground">
-            <span>Soglia onda evitata</span><span className="text-foreground">{threshold.toFixed(1)} m</span>
+            <span>Avoided wave threshold</span><span className="text-foreground">{threshold.toFixed(1)} m</span>
           </div>
-          <Slider min={1} max={8} step={0.5} value={[threshold]} onValueChange={(v) => setThreshold(v[0] ?? 3.5)} />
+          <Slider min={1} max={8} step={0.5} value={[threshold]} onValueChange={(v) => setThreshold(v[0] ?? VESSEL.heaveMax)} />
         </div>
       </header>
 
-      <main className="grid gap-4 p-4 lg:grid-cols-[1fr_380px]">
+      <main className="grid gap-4 p-4 lg:grid-cols-[1fr_400px]">
         <section className="panel relative h-[62vh] overflow-hidden">
-          <AtlasMap grid={grid} planned={planned} rerouted={rerouted} show={show} />
-          <div className="panel absolute bottom-3 left-3 z-[500] space-y-1 p-3 font-mono text-xs">
-            <Legend swatch="bg-route-planned" label="Pianificata" dashed />
-            <Legend swatch="bg-route-weather" label="Meteo-ottimizzata" />
-            <div className="flex gap-2 pt-1">
-              {[["bg-sea-calm", "<1.5"], ["bg-sea-moderate", "<3"], ["bg-sea-rough", "<5"], ["bg-sea-severe", "5+ m"]].map(([c, l]) => (
-                <span key={l} className="flex items-center gap-1"><i className={`h-2 w-2 rounded-full ${c}`} />{l}</span>
-              ))}
-            </div>
+          <AtlasMap grid={grid} planned={planned} rerouted={rerouted} segments={segments} show={show} />
+          <div className="panel absolute bottom-3 left-3 z-[500] space-y-1.5 p-3 font-mono text-xs">
+            <Toggle on={show.planned} onClick={() => toggle("planned")}><i className="h-0.5 w-6 bg-route-planned opacity-60" />Planned (great circle)</Toggle>
+            <Toggle on={show.optimized} onClick={() => toggle("optimized")}><i className="h-0.5 w-6 bg-route-weather" />Satellite-informed re-route</Toggle>
+            <Toggle on={show.adv} onClick={() => toggle("adv")}>
+              <span className="flex h-2 w-6 overflow-hidden rounded-sm"><i className="flex-1 bg-sea-severe" /><i className="flex-1 bg-sea-rough" /><i className="flex-1 bg-sea-moderate" /><i className="flex-1 bg-sea-calm" /></span>
+              ADV score (low → high)
+            </Toggle>
+            <Toggle on={show.waves} onClick={() => toggle("waves")}><i className="h-2 w-2 rounded-full bg-sea-rough" />Current Hs field</Toggle>
             {error && <p className="text-destructive">{error}</p>}
-            {!grid.length && !error && <p className="text-muted-foreground">Caricamento onde…</p>}
+            {!grid.length && !error && <p className="text-muted-foreground">Loading waves…</p>}
           </div>
         </section>
 
         <aside className="grid content-start gap-3">
-          {kpis.map((k) => {
-            const active = !k.toggle || show[k.toggle];
-            return (
-              <div
-                key={k.label}
-                onClick={k.toggle ? () => setShow((s) => ({ ...s, [k.toggle!]: !s[k.toggle!] })) : undefined}
-                className={`panel flex items-baseline justify-between px-4 py-3 transition-opacity ${
-                  k.toggle ? `cursor-pointer ${active ? "" : "opacity-40"}` : ""
-                }`}
-                title={k.toggle ? "Clicca per mostrare/nascondere la rotta" : undefined}
-              >
-                <span className="text-xs text-muted-foreground">{k.label}</span>
-                <span className="font-mono text-lg">
-                  {k.value}
-                  {k.sub && <span className="ml-2 text-xs text-primary">{k.sub}</span>}
-                </span>
+          <div className="grid grid-cols-2 gap-3">
+            {([["planned", "Planned distance", s.dP, ""], ["optimized", "Re-routed distance", s.dR, `+${(s.dR - s.dP).toFixed(0)}`]] as const).map(([k, l, d, sub]) => (
+              <button key={k} onClick={() => toggle(k)} title="Click to show/hide the route"
+                className={`panel px-3 py-2 text-left transition-opacity ${show[k] ? "" : "opacity-40"}`}>
+                <span className="block text-[11px] text-muted-foreground">{l}</span>
+                <span className="font-mono text-lg">{d.toFixed(0)} nm</span>
+                {sub && <span className="ml-1 font-mono text-xs text-primary">{sub}</span>}
+              </button>
+            ))}
+          </div>
+          {hyp.map((h) => (
+            <div key={h.id} className="panel flex items-center gap-3 px-3 py-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded bg-accent font-mono text-xs text-primary">{h.id}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold">{h.title}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{h.note}</p>
               </div>
-            );
-          })}
+              <span className="font-mono text-sm">{h.value}</span>
+            </div>
+          ))}
+          <div className="panel px-3 py-2 font-mono text-[11px] text-muted-foreground">
+            Voyage time @ {VESSEL.speedKn} kn: <span className="text-foreground">{(s.dR / VESSEL.speedKn / 24).toFixed(1)} days</span>
+          </div>
         </aside>
 
-        <section className="panel p-4 lg:col-span-1">
-          <h2 className="mb-3 font-display text-sm font-semibold">Altezza d'onda lungo la rotta</h2>
-          <div className="h-56">
+        <section className="panel p-4">
+          <div className="mb-3 flex gap-1 font-mono text-[11px]">
+            {([["adv", "Coincidence & ADV"], ["waves", "Hs along route"], ["h4", "H4 · safety vs fuel"]] as const).map(([k, l]) => (
+              <button key={k} onClick={() => setTab(k)}
+                className={`rounded px-2.5 py-1 ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{l}</button>
+            ))}
+          </div>
+          <div className="h-60">
             <ResponsiveContainer>
-              <LineChart data={stats.chart}>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={11} unit=" m" />
-                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
-                <ReferenceLine y={threshold} stroke="var(--sea-severe)" strokeDasharray="4 4" />
-                <Line dataKey="pianificata" stroke="var(--route-planned)" dot={false} strokeWidth={2} />
-                <Line dataKey="ottimizzata" stroke="var(--route-weather)" dot={false} strokeWidth={2} />
-              </LineChart>
+              {tab === "adv" ? (
+                <AreaChart data={segments.map((x) => ({ wp: x.idx, "Sentinel-1": +(x.pS1 * 100).toFixed(1), "All missions": +(x.pAll * 100).toFixed(1), ADV: +(x.adv * 100).toFixed(1) }))}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} unit="%" />
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
+                  <RLegend wrapperStyle={{ fontSize: 11 }} />
+                  <ReferenceLine y={22} stroke="var(--sea-severe)" strokeDasharray="4 4" label={{ value: "blind", fill: "var(--sea-severe)", fontSize: 10 }} />
+                  <Area dataKey="All missions" stroke="var(--sea-calm)" fill="var(--sea-calm)" fillOpacity={0.15} />
+                  <Area dataKey="Sentinel-1" stroke="var(--route-planned)" fill="var(--route-planned)" fillOpacity={0.1} />
+                  <Area dataKey="ADV" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.15} />
+                </AreaChart>
+              ) : tab === "waves" ? (
+                <LineChart data={s.waves}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} unit=" m" />
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
+                  <RLegend wrapperStyle={{ fontSize: 11 }} />
+                  <ReferenceLine y={threshold} stroke="var(--sea-severe)" strokeDasharray="4 4" />
+                  <Line dataKey="planned" stroke="var(--route-planned)" dot={false} strokeWidth={2} />
+                  <Line dataKey="rerouted" stroke="var(--route-weather)" dot={false} strokeWidth={2} />
+                </LineChart>
+              ) : (
+                <LineChart data={events}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis yAxisId="h" stroke="var(--muted-foreground)" fontSize={11} unit=" m" />
+                  <YAxis yAxisId="f" orientation="right" stroke="var(--muted-foreground)" fontSize={11} unit=" t" />
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
+                  <RLegend wrapperStyle={{ fontSize: 11 }} />
+                  <ReferenceLine yAxisId="h" y={VESSEL.heaveMax} stroke="var(--sea-severe)" strokeDasharray="4 4" />
+                  <Line yAxisId="h" name="Heave before" dataKey="heaveBefore" stroke="var(--sea-severe)" dot={{ r: 2 }} />
+                  <Line yAxisId="h" name="Heave after" dataKey="heaveAfter" stroke="var(--sea-calm)" dot={{ r: 2 }} />
+                  <Line yAxisId="f" name="Fuel penalty" dataKey="fuelPenaltyT" stroke="var(--primary)" strokeDasharray="3 3" dot={false} />
+                </LineChart>
+              )}
             </ResponsiveContainer>
           </div>
         </section>
 
-        <section className="panel grid place-items-center border-dashed p-6 text-center">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-primary">Business</p>
-            <p className="mt-2 text-sm text-muted-foreground">Spazio pronto per costi carburante, ETA, noli e altri grafici.</p>
-          </div>
+        <section className="panel p-4">
+          <EconomicCase warnedShare={s.pAll} />
         </section>
       </main>
     </div>
   );
 }
 
-function Legend({ swatch, label, dashed }: { swatch: string; label: string; dashed?: boolean }) {
+function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2">
-      <i className={`h-0.5 w-6 ${swatch} ${dashed ? "opacity-60" : ""}`} />{label}
-    </div>
+    <button onClick={onClick} className={`flex items-center gap-2 transition-opacity ${on ? "" : "opacity-40"}`}>{children}</button>
   );
 }
