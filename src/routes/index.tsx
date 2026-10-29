@@ -137,7 +137,7 @@ function Index() {
               {tab === "adv" ? (
                 <AreaChart margin={{ left: 10, right: 10, bottom: 14 }} data={segments.map((x) => ({ wp: x.idx, "Sentinel-1": +(x.pS1 * 100).toFixed(1), "All missions": +(x.pAll * 100).toFixed(1), ADV: +(x.adv * 100).toFixed(1) }))}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize=11 label={{ value: "Waypoint along route (Lisbon → Halifax)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} label={{ value: "Waypoint along route (Lisbon → Halifax)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={11} unit="%" label={{ value: "Probability / ADV score (%)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
                   <RLegend verticalAlign="top" wrapperStyle={{ fontSize: 11 }} />
@@ -149,7 +149,7 @@ function Index() {
               ) : tab === "waves" ? (
                 <LineChart margin={{ left: 10, right: 10, bottom: 14 }} data={s.waves}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize=11 label={{ value: "Waypoint along route (Lisbon → Halifax)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} label={{ value: "Waypoint along route (Lisbon → Halifax)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={11} unit=" m" label={{ value: "Significant wave height Hs (m)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
                   <RLegend verticalAlign="top" wrapperStyle={{ fontSize: 11 }} />
@@ -160,7 +160,7 @@ function Index() {
               ) : (
                 <LineChart margin={{ left: 10, right: 10, bottom: 14 }} data={events}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize=11 label={{ value: "Simulated re-routing event (#)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize={11} label={{ value: "Simulated re-routing event (#)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <YAxis yAxisId="h" stroke="var(--muted-foreground)" fontSize={11} unit=" m" label={{ value: "Significant heave (m)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <YAxis yAxisId="f" orientation="right" stroke="var(--muted-foreground)" fontSize={11} unit=" t" label={{ value: "Fuel penalty (t)", angle: 90, position: "insideRight", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
