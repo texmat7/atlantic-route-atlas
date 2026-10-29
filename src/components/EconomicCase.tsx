@@ -26,7 +26,7 @@ export function EconomicCase({ warnedShare }: { warnedShare: number }) {
     <div className="flex h-full flex-col gap-3">
       <div className="flex items-baseline justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Module E · Economic case</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Economic Framework</p>
           <h2 className="font-display text-sm font-semibold">Is acting on satellite warnings worth it at fleet scale?</h2>
         </div>
         <span className={`font-mono text-lg ${r.net >= 0 ? "text-primary" : "text-destructive"}`}>
