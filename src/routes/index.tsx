@@ -69,11 +69,12 @@ function Index() {
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border px-6 py-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-primary">Added Detection Value Atlas · North Atlantic</p>
-          <h1 className="font-display text-2xl font-semibold">How often would a satellite have warned you?</h1>
-          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-            Lisbon → Halifax · {VESSEL.name} · {VESSEL.speedKn} kn · limits: heave {VESSEL.heaveMax} m, roll {VESSEL.rollMax}°
-            <span className="ml-2 rounded border border-primary/50 px-1.5 py-0.5 text-primary">SIMULATED DATA</span>
-          </p>
+          <h1 className="font-display text-2xl font-semibold">Lisbon → Halifax</h1>
+          <div className="mt-1.5 flex flex-wrap gap-1.5 font-mono text-[11px]">
+            <span className="rounded border border-border bg-secondary px-1.5 py-0.5 text-muted-foreground">🚢 {VESSEL.name} · {VESSEL.speedKn} kn</span>
+            <span className="rounded border border-border bg-secondary px-1.5 py-0.5 text-muted-foreground">⚠ Heave ≤ {VESSEL.heaveMax} m · Roll ≤ {VESSEL.rollMax}°</span>
+            <span className="rounded border border-primary/50 px-1.5 py-0.5 text-primary">SIMULATED DATA</span>
+          </div>
         </div>
         <div className="w-72">
           <div className="mb-2 flex justify-between font-mono text-xs text-muted-foreground">
@@ -112,7 +113,6 @@ function Index() {
           </div>
           {hyp.map((h) => (
             <div key={h.id} className="panel flex items-center gap-3 px-3 py-2.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded bg-accent font-mono text-xs text-primary">{h.id}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold">{h.title}</p>
                 <p className="truncate text-[11px] text-muted-foreground">{h.note}</p>
