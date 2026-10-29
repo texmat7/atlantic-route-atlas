@@ -127,44 +127,44 @@ function Index() {
 
         <section className="panel p-4">
           <div className="mb-3 flex gap-1 font-mono text-[11px]">
-            {([["adv", "Coincidence & ADV"], ["waves", "Hs along route"], ["h4", "H4 · safety vs fuel"]] as const).map(([k, l]) => (
+            {([["adv", "Coincidence & ADV"], ["waves", "Hs along route"], ["h4", "Safety vs fuel"]] as const).map(([k, l]) => (
               <button key={k} onClick={() => setTab(k)}
                 className={`rounded px-2.5 py-1 ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{l}</button>
             ))}
           </div>
-          <div className="h-60">
+          <div className="h-72">
             <ResponsiveContainer>
               {tab === "adv" ? (
-                <AreaChart data={segments.map((x) => ({ wp: x.idx, "Sentinel-1": +(x.pS1 * 100).toFixed(1), "All missions": +(x.pAll * 100).toFixed(1), ADV: +(x.adv * 100).toFixed(1) }))}>
+                <AreaChart margin={{ left: 10, right: 10, bottom: 14 }} data={segments.map((x) => ({ wp: x.idx, "Sentinel-1": +(x.pS1 * 100).toFixed(1), "All missions": +(x.pAll * 100).toFixed(1), ADV: +(x.adv * 100).toFixed(1) }))}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={11} unit="%" />
+                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize=11 label={{ value: "Waypoint along route (Lisbon → Halifax)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} unit="%" label={{ value: "Probability / ADV score (%)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
-                  <RLegend wrapperStyle={{ fontSize: 11 }} />
+                  <RLegend verticalAlign="top" wrapperStyle={{ fontSize: 11 }} />
                   <ReferenceLine y={22} stroke="var(--sea-severe)" strokeDasharray="4 4" label={{ value: "blind", fill: "var(--sea-severe)", fontSize: 10 }} />
                   <Area dataKey="All missions" stroke="var(--sea-calm)" fill="var(--sea-calm)" fillOpacity={0.15} />
                   <Area dataKey="Sentinel-1" stroke="var(--route-planned)" fill="var(--route-planned)" fillOpacity={0.1} />
                   <Area dataKey="ADV" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.15} />
                 </AreaChart>
               ) : tab === "waves" ? (
-                <LineChart data={s.waves}>
+                <LineChart margin={{ left: 10, right: 10, bottom: 14 }} data={s.waves}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={11} unit=" m" />
+                  <XAxis dataKey="wp" stroke="var(--muted-foreground)" fontSize=11 label={{ value: "Waypoint along route (Lisbon → Halifax)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={11} unit=" m" label={{ value: "Significant wave height Hs (m)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
-                  <RLegend wrapperStyle={{ fontSize: 11 }} />
+                  <RLegend verticalAlign="top" wrapperStyle={{ fontSize: 11 }} />
                   <ReferenceLine y={threshold} stroke="var(--sea-severe)" strokeDasharray="4 4" />
                   <Line dataKey="planned" stroke="var(--route-planned)" dot={false} strokeWidth={2} />
                   <Line dataKey="rerouted" stroke="var(--route-weather)" dot={false} strokeWidth={2} />
                 </LineChart>
               ) : (
-                <LineChart data={events}>
+                <LineChart margin={{ left: 10, right: 10, bottom: 14 }} data={events}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis yAxisId="h" stroke="var(--muted-foreground)" fontSize={11} unit=" m" />
-                  <YAxis yAxisId="f" orientation="right" stroke="var(--muted-foreground)" fontSize={11} unit=" t" />
+                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize=11 label={{ value: "Simulated re-routing event (#)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <YAxis yAxisId="h" stroke="var(--muted-foreground)" fontSize={11} unit=" m" label={{ value: "Significant heave (m)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <YAxis yAxisId="f" orientation="right" stroke="var(--muted-foreground)" fontSize={11} unit=" t" label={{ value: "Fuel penalty (t)", angle: 90, position: "insideRight", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
-                  <RLegend wrapperStyle={{ fontSize: 11 }} />
+                  <RLegend verticalAlign="top" wrapperStyle={{ fontSize: 11 }} />
                   <ReferenceLine yAxisId="h" y={VESSEL.heaveMax} stroke="var(--sea-severe)" strokeDasharray="4 4" />
                   <Line yAxisId="h" name="Heave before" dataKey="heaveBefore" stroke="var(--sea-severe)" dot={{ r: 2 }} />
                   <Line yAxisId="h" name="Heave after" dataKey="heaveAfter" stroke="var(--sea-calm)" dot={{ r: 2 }} />
