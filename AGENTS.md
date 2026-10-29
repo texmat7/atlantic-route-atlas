@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Simulated project results live in src/lib/simulation.ts; replace its functions with real Python-pipeline data later, keeping the same return shapes so the UI stays unchanged.
