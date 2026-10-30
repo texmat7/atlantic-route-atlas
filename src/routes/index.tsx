@@ -59,7 +59,7 @@ function Index() {
 
   const hyp = [
     { id: "H1", title: "Constellation boosts coincidence", value: `${(s.pS1 * 100).toFixed(0)}% → ${(s.pAll * 100).toFixed(0)}%`, note: "Sentinel-1 only vs full SAR + altimetry" },
-    { id: "H2", title: "Blind corridor", value: `${(s.blind * 100).toFixed(0)}% of route`, note: "Mid-Atlantic leg, coincidence < 22%" },
+    { id: "H2", title: "Blind corridor", value: `${(s.blind * 100).toFixed(0)}% of route`, note: "Route nodes with all-mission coincidence < 22%" },
     { id: "H3", title: "CMEMS underestimates Hs", value: `${s.bias >= 0 ? "−" : "+"}${Math.abs(s.bias).toFixed(2)} m`, note: "Mean altimeter − CMEMS Hs, coincident events" },
     { id: "H4", title: "Safety recovered", value: `${(s.compliant * 100).toFixed(0)}% compliant`, note: `−${s.heaveRec.toFixed(2)} m heave · ${s.fuel.toFixed(1)} t fuel / event` },
   ];
