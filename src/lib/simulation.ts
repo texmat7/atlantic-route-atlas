@@ -14,23 +14,23 @@ export type SegmentResult = LatLng & {
   blind: boolean;
 };
 
-const rnd = (i: number) => {
-  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
-  return x - Math.floor(x);
-};
+import segData from "@/data/segments.json";
+import eventData from "@/data/events.json";
 
-export function simulateSegments(route: LatLng[]): SegmentResult[] {
-  return route.map((p, i) => {
-    // Grand Banks / Flemish Cap approach (west of ~45°W) has dense SAR tasking
-    const gb = Math.max(0, Math.min(1, (-p.lng - 42) / 14));
-    const coast = Math.max(0, 1 - Math.abs(p.lng + 9.4) / 6) * 0.5;
-    const pS1 = 0.03 + 0.17 * gb + 0.06 * coast + 0.02 * rnd(i);
-    const pAll = Math.min(0.95, pS1 * 2.6 + 0.08 + 0.04 * rnd(i + 7));
-    const bias = 0.4 + 1.1 * (1 - gb) * (0.6 + 0.4 * rnd(i + 3));
-    const adv = Math.min(1, pAll * 1.6 * (0.5 + bias / 3));
-    return { ...p, idx: i, pS1, pAll, bias, adv, blind: pAll < 0.22 };
-  });
+const maxPAll = Math.max(...segData.map((d) => d.pAll));
+
+/** Real per-route-node results from the Python pipeline (coincidence_merged.parquet, 2010–2020).
+ *  ADV = all-mission coincidence probability normalised to the best-covered node. */
+export function simulateSegments(_route?: LatLng[]): SegmentResult[] {
+  return segData.map((d) => ({
+    lat: d.lat, lng: d.lng, idx: d.idx, pS1: d.pS1, pAll: d.pAll, bias: d.bias,
+    adv: d.pAll / maxPAll, blind: d.pAll < 0.22,
+  }));
 }
+
+/** Pipeline route nodes (Lisbon → Halifax). */
+export const PIPELINE_ROUTE: LatLng[] = segData.map((d) => ({ lat: d.lat, lng: d.lng }));
+export const PIPELINE_EVENT_COUNT = segData.reduce((a, d) => a + d.n, 0);
 
 export const VESSEL = {
   name: "4250 TEU containership",
@@ -41,14 +41,12 @@ export const VESSEL = {
   rollMax: 5,
 };
 
-/** H4 simulated re-routing events: safety margin recovered vs fuel penalty. */
-export function simulateEvents(n = 24) {
-  return Array.from({ length: n }, (_, i) => {
-    const heaveBefore = 3.6 + rnd(i + 11) * 1.6;
-    const heaveAfter = Math.min(heaveBefore - 0.4, 2.6 + rnd(i + 19) * 0.9);
-    const fuelPenaltyT = +(2 + rnd(i + 23) * 14).toFixed(1);
-    return { id: i + 1, heaveBefore: +heaveBefore.toFixed(2), heaveAfter: +heaveAfter.toFixed(2), fuelPenaltyT };
-  });
+/** Re-routing results per year (phase4_adv_dataset.csv, joined by event_id). id = year. */
+export function simulateEvents() {
+  return eventData.map((e) => ({
+    id: e.id, heaveBefore: +e.heaveBefore.toFixed(2), heaveAfter: +e.heaveAfter.toFixed(2),
+    fuelPenaltyT: +e.fuelPenaltyT.toFixed(1), restored: e.restored,
+  }));
 }
 
 /* ---------- Module E: economic framing ---------- */

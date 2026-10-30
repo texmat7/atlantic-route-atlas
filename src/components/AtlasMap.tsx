@@ -26,7 +26,7 @@ export function AtlasMap({ grid, planned, rerouted, segments, show }: Props) {
       LRef.current = L;
       const map = L.map(el.current, { worldCopyJump: true, minZoom: 2 }).setView([43, -36], 4);
       L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}", {
-        attribution: "Tiles &copy; Esri · Waves: Open-Meteo · ADV: simulated",
+        attribution: "Tiles &copy; Esri · Waves: Open-Meteo · ADV: project pipeline",
       }).addTo(map);
       mapRef.current = map;
       layerRef.current = L.layerGroup().addTo(map);
