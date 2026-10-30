@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Slider } from "@/components/ui/slider";
+import { ParameterHelp } from "@/components/ParameterHelp";
 import { economics, ECON_DEFAULTS, type EconInputs } from "@/lib/simulation";
 
 const usd = (v: number) =>
   Math.abs(v) >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(0)}k`;
 
-const CONTROLS: { key: keyof EconInputs; label: string; min: number; max: number; step: number; fmt: (v: number) => string }[] = [
+const CONTROLS: { key: "fleetSize" | "fuelPrice" | "damageProb" | "avgLoss"; label: string; min: number; max: number; step: number; fmt: (v: number) => string }[] = [
   { key: "fleetSize", label: "Fleet size", min: 1, max: 100, step: 1, fmt: (v) => `${v} ships` },
   { key: "fuelPrice", label: "Fuel price (VLSFO)", min: 300, max: 1200, step: 10, fmt: (v) => `$${v}/t` },
   { key: "damageProb", label: "P(damage | unwarned hazard)", min: 0.001, max: 0.1, step: 0.001, fmt: (v) => `${(v * 100).toFixed(1)}%` },
@@ -30,19 +31,19 @@ export function EconomicCase({ warnedShare }: { warnedShare: number }) {
           <h2 className="mt-0.5 text-xs text-muted-foreground">Fleet-scale cost–benefit of satellite-informed hazard avoidance</h2>
         </div>
         <span className={`shrink-0 whitespace-nowrap font-mono text-sm ${r.net >= 0 ? "text-primary" : "text-destructive"}`}>
-          ROI {(r.roi * 100).toFixed(0)}%
+          <ParameterHelp term="roi">ROI {(r.roi * 100).toFixed(0)}%</ParameterHelp>
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
         {CONTROLS.map((c) => (
-          <label key={c.key} className="block">
-            <div className="mb-1 flex justify-between font-mono text-[10px] text-muted-foreground">
-              <span>{c.label}</span><span className="text-foreground">{c.fmt(inp[c.key])}</span>
+          <div key={c.key} className="min-w-0">
+            <div className="mb-1 flex flex-wrap justify-between gap-x-2 font-mono text-[10px] text-muted-foreground">
+              <ParameterHelp term={c.key}>{c.label}</ParameterHelp><span className="text-foreground">{c.fmt(inp[c.key])}</span>
             </div>
-            <Slider min={c.min} max={c.max} step={c.step} value={[inp[c.key]]}
+            <Slider aria-label={c.label} min={c.min} max={c.max} step={c.step} value={[inp[c.key]]}
               onValueChange={(v) => setInp((s) => ({ ...s, [c.key]: v[0] ?? s[c.key] }))} />
-          </label>
+          </div>
         ))}
       </div>
 
@@ -59,9 +60,9 @@ export function EconomicCase({ warnedShare }: { warnedShare: number }) {
       </div>
 
       <div className="grid grid-cols-3 gap-2 font-mono text-[10px] text-muted-foreground">
-        <div>Hazards / yr<p className="text-sm text-foreground">{r.hazards.toFixed(0)}</p></div>
-        <div>Warned ({(warnedShare * 100).toFixed(0)}%)<p className="text-sm text-foreground">{r.warned.toFixed(0)}</p></div>
-        <div>Break-even P(damage)<p className="text-sm text-foreground">{(r.breakEvenProb * 100).toFixed(2)}%</p></div>
+        <div><ParameterHelp term="hazards">Hazards / yr</ParameterHelp><p className="text-sm text-foreground">{r.hazards.toFixed(0)}</p></div>
+        <div><ParameterHelp term="warned">Warned ({(warnedShare * 100).toFixed(0)}%)</ParameterHelp><p className="text-sm text-foreground">{r.warned.toFixed(0)}</p></div>
+        <div><ParameterHelp term="breakEven">Break-even P(damage)</ParameterHelp><p className="text-sm text-foreground">{(r.breakEvenProb * 100).toFixed(2)}%</p></div>
       </div>
     </div>
   );
