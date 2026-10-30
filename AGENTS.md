@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Simulated project results live in src/lib/simulation.ts; replace its functions with real Python-pipeline data later, keeping the same return shapes so the UI stays unchanged.
+- Historical waypoint maneuver summaries use the CSV-to-Parquet event_id join grouped by route_node; preserve dedicated pipeline fuel and recovered-margin fields to avoid conflating fuel change with consumption or margin with motion reduction.
