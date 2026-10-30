@@ -21,7 +21,8 @@ export const PARAMETER_HELP = {
   warned: "Expected warned encounters per year = annual hazards × mean all-mission coincidence across route waypoints. The economic model treats this coverage share as the fraction warned.",
   breakEven: "Damage probability at which expected avoided loss equals additional fuel cost: fuel tonnes per avoidance × fuel price / average loss. The scenario assumes 8 extra tonnes per avoidance.",
   fuel: "Fuel change due to the maneuver, in metric tonnes, relative to the baseline. Negative values mean fuel saved, not negative absolute consumption.",
-  safetyMargin: "Recovered heave safety margin, in metres: (3.5 m − heave after) − (3.5 m − heave before), equal to heave before minus heave after. Positive values mean improved safety; they do not alone establish compliance with all limits.",
+  maneuverFuel: "Fuel consumed for the maneuver, in metric tonnes, from the pipeline’s reroute_foc_ton field. This is absolute consumption, not the change relative to the baseline. The supplied dataset reports 0.48 t for every event.",
+  safetyMargin: "Recovered heave safety margin, in metres, from the pipeline’s heave_margin_recovered_m field, averaged over hazardous events at each waypoint. It is distinct from heave reduction (delta_heave_m). The generating Python script is not supplied, so its exact formula cannot be verified here.",
   waypoint: "A numbered geographic point along the Lisbon → Halifax pipeline route. Waypoint results describe historical hazardous encounters at that location, not an annual average or a live voyage forecast.",
 } as const;
 
