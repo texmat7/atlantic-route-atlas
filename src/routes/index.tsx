@@ -7,7 +7,7 @@ import { EconomicCase } from "@/components/EconomicCase";
 import {
   fetchWaveGrid, greatCircle, weatherRoute, routeLengthNm, waveAt, LISBON, HALIFAX, type WavePoint,
 } from "@/lib/routing";
-import { simulateSegments, simulateEvents, VESSEL } from "@/lib/simulation";
+import { simulateSegments, simulateEvents, VESSEL, PIPELINE_ROUTE, PIPELINE_EVENT_COUNT } from "@/lib/simulation";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,7 +34,7 @@ function Index() {
 
   useEffect(() => { fetchWaveGrid().then(setGrid).catch((e) => setError(e.message)); }, []);
 
-  const planned = useMemo(() => greatCircle(LISBON, HALIFAX, 40), []);
+  const planned = useMemo(() => PIPELINE_ROUTE, []);
   const rerouted = useMemo(() => (grid.length ? weatherRoute(planned, grid, threshold) : planned), [planned, grid, threshold]);
   const segments = useMemo(() => simulateSegments(planned), [planned]);
   const events = useMemo(() => simulateEvents(), []);
@@ -50,7 +50,7 @@ function Index() {
       bias: mean(segments.map((x) => x.bias)),
       heaveRec: mean(events.map((e) => e.heaveBefore - e.heaveAfter)),
       fuel: mean(events.map((e) => e.fuelPenaltyT)),
-      compliant: events.filter((e) => e.heaveAfter <= VESSEL.heaveMax).length / events.length,
+      compliant: mean(events.map((e) => e.restored)),
       waves: planned.map((_, i) => ({ wp: i, planned: +(wP[i] ?? 0).toFixed(2), rerouted: +(wR[i] ?? 0).toFixed(2) })),
     };
   }, [planned, rerouted, grid, segments, events]);
@@ -60,8 +60,8 @@ function Index() {
   const hyp = [
     { id: "H1", title: "Constellation boosts coincidence", value: `${(s.pS1 * 100).toFixed(0)}% → ${(s.pAll * 100).toFixed(0)}%`, note: "Sentinel-1 only vs full SAR + altimetry" },
     { id: "H2", title: "Blind corridor", value: `${(s.blind * 100).toFixed(0)}% of route`, note: "Mid-Atlantic leg, coincidence < 22%" },
-    { id: "H3", title: "CMEMS underestimates Hs", value: `−${s.bias.toFixed(2)} m`, note: "Mean bias on coincident events" },
-    { id: "H4", title: "Safety recovered", value: `${(s.compliant * 100).toFixed(0)}% compliant`, note: `−${s.heaveRec.toFixed(2)} m heave · +${s.fuel.toFixed(1)} t fuel` },
+    { id: "H3", title: "CMEMS underestimates Hs", value: `${s.bias >= 0 ? "−" : "+"}${Math.abs(s.bias).toFixed(2)} m`, note: "Mean altimeter − CMEMS Hs, coincident events" },
+    { id: "H4", title: "Safety recovered", value: `${(s.compliant * 100).toFixed(0)}% compliant`, note: `−${s.heaveRec.toFixed(2)} m heave · ${s.fuel.toFixed(1)} t fuel / event` },
   ];
 
   return (
@@ -73,7 +73,7 @@ function Index() {
           <div className="mt-1.5 flex flex-wrap gap-1.5 font-mono text-[11px]">
             <span className="rounded border border-border bg-secondary px-1.5 py-0.5 text-muted-foreground">🚢 {VESSEL.name} · {VESSEL.speedKn} kn</span>
             <span className="rounded border border-border bg-secondary px-1.5 py-0.5 text-muted-foreground">⚠ Heave ≤ {VESSEL.heaveMax} m · Roll ≤ {VESSEL.rollMax}°</span>
-            <span className="rounded border border-primary/50 px-1.5 py-0.5 text-primary">SIMULATED DATA</span>
+            <span className="rounded border border-primary/50 px-1.5 py-0.5 text-primary">PIPELINE DATA · 2010–2020 · {PIPELINE_EVENT_COUNT.toLocaleString("en")} events</span>
           </div>
         </div>
         <div className="w-72">
@@ -160,15 +160,15 @@ function Index() {
               ) : (
                 <LineChart margin={{ left: 10, right: 10, bottom: 14 }} data={events}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize={11} label={{ value: "Simulated re-routing event (#)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <XAxis dataKey="id" stroke="var(--muted-foreground)" fontSize={11} label={{ value: "Year (mean over hazardous events)", position: "insideBottom", offset: -4, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <YAxis yAxisId="h" stroke="var(--muted-foreground)" fontSize={11} unit=" m" label={{ value: "Significant heave (m)", angle: -90, position: "insideLeft", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
-                  <YAxis yAxisId="f" orientation="right" stroke="var(--muted-foreground)" fontSize={11} unit=" t" label={{ value: "Fuel penalty (t)", angle: 90, position: "insideRight", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
+                  <YAxis yAxisId="f" orientation="right" stroke="var(--muted-foreground)" fontSize={11} unit=" t" label={{ value: "Fuel change per event (t)", angle: 90, position: "insideRight", style: { textAnchor: "middle" }, fill: "var(--muted-foreground)", fontSize: 10 }} />
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)" }} />
                   <RLegend verticalAlign="top" wrapperStyle={{ fontSize: 11 }} />
                   <ReferenceLine yAxisId="h" y={VESSEL.heaveMax} stroke="var(--sea-severe)" strokeDasharray="4 4" />
                   <Line yAxisId="h" name="Heave before" dataKey="heaveBefore" stroke="var(--sea-severe)" dot={{ r: 2 }} />
                   <Line yAxisId="h" name="Heave after" dataKey="heaveAfter" stroke="var(--sea-calm)" dot={{ r: 2 }} />
-                  <Line yAxisId="f" name="Fuel penalty" dataKey="fuelPenaltyT" stroke="var(--primary)" strokeDasharray="3 3" dot={false} />
+                  <Line yAxisId="f" name="Fuel change" dataKey="fuelPenaltyT" stroke="var(--primary)" strokeDasharray="3 3" dot={false} />
                 </LineChart>
               )}
             </ResponsiveContainer>
